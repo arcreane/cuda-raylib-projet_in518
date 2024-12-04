@@ -52,6 +52,7 @@ int main(void)
     bool gameOver = false;
     bool pause = false;
     float survivalTime = 0.0f;
+    float speedMultiplier = 1.0f;
 
     SetTargetFPS(60);
 
@@ -70,12 +71,13 @@ int main(void)
         if (!pause && !gameOver)
         {
             survivalTime += GetFrameTime();
+            speedMultiplier += GetFrameTime() * 0.1f; // Increase speed gradually
 
             for (int i = 0; i < ballCount; i++)
             {
                 // Move the balls
-                ballPositions[i].x += ballSpeeds[i].x;
-                ballPositions[i].y += ballSpeeds[i].y;
+                ballPositions[i].x += ballSpeeds[i].x * speedMultiplier;
+                ballPositions[i].y += ballSpeeds[i].y * speedMultiplier;
 
                 // Handle wall collisions
                 if (ballPositions[i].x > currentScreenWidth - ballRadius || ballPositions[i].x < ballRadius)
@@ -87,6 +89,7 @@ int main(void)
                 // Handle ball-to-ball collisions
                 for (int j = i + 1; j < ballCount; j++)
                 {
+                    
                     if (MyCheckCollisionCircles(ballPositions[i], ballRadius, ballPositions[j], ballRadius))
                     {
                         // Calculate collision normal
@@ -147,6 +150,7 @@ int main(void)
         {
             gameOver = false;
             survivalTime = 0.0f;
+            speedMultiplier = 1.0f;
 
             // Reset balls
             for (int i = 0; i < ballCount; i++)
@@ -183,7 +187,7 @@ int main(void)
             }
             else
             {
-                DrawText(TextFormat("Time: %.2f", survivalTime), 10, 10, 20, DARKGRAY);
+                DrawText(TextFormat("Time: %.2f", speedMultiplier), 10, 10, 20, DARKGRAY);
                 DrawText("Press W/S/A/D to move", 10, 40, 20, LIGHTGRAY);
                 DrawText("Press SPACE to pause", 10, 70, 20, LIGHTGRAY);
             }
