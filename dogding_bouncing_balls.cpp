@@ -13,10 +13,12 @@ bool MyCheckCollisionCircles(Vector2 center1, float radius1, Vector2 center2, fl
 int main(void)
 {
     // Initialization
-    const int screenWidth = 800;
-    const int screenHeight = 450;
 
-    SetConfigFlags(FLAG_MSAA_4X_HINT | FLAG_WINDOW_RESIZABLE);
+    int screenWidth = GetMonitorWidth(0); 
+    int screenHeight = GetMonitorHeight(0);
+
+
+    SetConfigFlags(FLAG_MSAA_4X_HINT | FLAG_FULLSCREEN_MODE);
     InitWindow(screenWidth, screenHeight, "Bouncing Balls with Pause Functionality");
 
     const int ballCount = 5;
@@ -61,6 +63,7 @@ int main(void)
     {
         int currentScreenWidth = GetScreenWidth();
         int currentScreenHeight = GetScreenHeight();
+
 
         // Toggle pause on SPACE press, but only if the game is not over
         if (IsKeyPressed(KEY_SPACE) && !gameOver)
@@ -187,7 +190,7 @@ int main(void)
             }
             else
             {
-                DrawText(TextFormat("Time: %.2f", speedMultiplier), 10, 10, 20, DARKGRAY);
+                DrawText(TextFormat("Time: %.2f", survivalTime), 10, 10, 20, DARKGRAY);
                 DrawText("Press W/S/A/D to move", 10, 40, 20, LIGHTGRAY);
                 DrawText("Press SPACE to pause", 10, 70, 20, LIGHTGRAY);
             }
