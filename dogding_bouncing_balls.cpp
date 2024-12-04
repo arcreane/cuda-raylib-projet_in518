@@ -1,6 +1,7 @@
 #include "raylib.h"
 #include <math.h>
 #include <stdlib.h>
+#include <iostream> // For std::cout
 #include <time.h>
 
 // Function to detect collision between two circles
@@ -13,15 +14,14 @@ bool MyCheckCollisionCircles(Vector2 center1, float radius1, Vector2 center2, fl
 int main(void)
 {
     // Initialization
+    
+    int screenWidth = 1600;
+    int screenHeight = 900;
 
-    int screenWidth = GetMonitorWidth(0); 
-    int screenHeight = GetMonitorHeight(0);
-
-
-    SetConfigFlags(FLAG_MSAA_4X_HINT | FLAG_FULLSCREEN_MODE);
+    SetConfigFlags(FLAG_MSAA_4X_HINT);//| FLAG_FULLSCREEN_MODE);
     InitWindow(screenWidth, screenHeight, "Bouncing Balls with Pause Functionality");
 
-    const int ballCount = 5;
+    const int ballCount = 1;
     const int ballRadius = 20;
     const float ballSpeedValue = 4.0f;
 
@@ -42,14 +42,18 @@ int main(void)
         ballSpeeds[i].y = ballSpeedValue * sin(angle);
 
         // Assign a random unique color to each ball
-        ballColors[i].r = GetRandomValue(50, 255);
-        ballColors[i].g = GetRandomValue(50, 255);
-        ballColors[i].b = GetRandomValue(50, 255);
+        ballColors[i].r = GetRandomValue(150, 255);
+        ballColors[i].g = GetRandomValue(10, 50);
+        ballColors[i].b = GetRandomValue(10, 50);
         ballColors[i].a = 255;
     }
 
-    Vector2 squarePos = { screenWidth / 2.0f, screenHeight / 2.0f };
+    Vector2 squarePos = { screenWidth / 2, screenHeight / 2 };
     Vector2 squareSize = { 30, 30 };
+
+    float dashCooldown = 0.0f;  // Cooldown timer for the dash
+    const float dashDistance = 100.0f; // Distance of the dash
+    const float dashCooldownTime = 3.0f; // Dash cooldown time in seconds
 
     bool gameOver = false;
     bool pause = false;
@@ -75,6 +79,8 @@ int main(void)
         {
             survivalTime += GetFrameTime();
             speedMultiplier += GetFrameTime() * 0.1f; // Increase speed gradually
+            if (dashCooldown > 0.0f)
+                dashCooldown -= GetFrameTime();
 
             for (int i = 0; i < ballCount; i++)
             {
@@ -148,6 +154,32 @@ int main(void)
                 squarePos.x -= 5;
             if (IsKeyDown(KEY_D) && squarePos.x + squareSize.x < currentScreenWidth)
                 squarePos.x += 5;
+
+            //dash 
+            if (IsKeyPressed(KEY_LEFT_SHIFT) && dashCooldown <= 0.0f)
+            {
+                if (IsKeyDown(KEY_W) && squarePos.y > 0)
+                    squarePos.y -= dashDistance;
+                if (IsKeyDown(KEY_S) && squarePos.y + squareSize.y < currentScreenHeight)
+                    squarePos.y += dashDistance;
+                if (IsKeyDown(KEY_A) && squarePos.x > 0)
+                    squarePos.x -= dashDistance;
+                if (IsKeyDown(KEY_D) && squarePos.x + squareSize.x < currentScreenWidth)
+                    squarePos.x += dashDistance;
+
+                // Ensure the square stays within bounds
+                if (squarePos.x < 0)
+                    squarePos.x = 0;
+                if (squarePos.y < 0)
+                    squarePos.y = 0;
+                if (squarePos.x + squareSize.x > currentScreenWidth)
+                    squarePos.x = currentScreenWidth - squareSize.x;
+                if (squarePos.y + squareSize.y > currentScreenHeight)
+                    squarePos.y = currentScreenHeight - squareSize.y;
+
+                // Start dash cooldown
+                dashCooldown = dashCooldownTime;
+            }
         }
         else if (gameOver && IsKeyPressed(KEY_ENTER))
         {
@@ -169,7 +201,7 @@ int main(void)
 
         // Draw
         BeginDrawing();
-        ClearBackground(RAYWHITE);
+        ClearBackground(BLACK);
 
         for (int i = 0; i < ballCount; i++)
             DrawCircleV(ballPositions[i], ballRadius, ballColors[i]);
@@ -191,8 +223,9 @@ int main(void)
             else
             {
                 DrawText(TextFormat("Time: %.2f", survivalTime), 10, 10, 20, DARKGRAY);
-                DrawText("Press W/S/A/D to move", 10, 40, 20, LIGHTGRAY);
-                DrawText("Press SPACE to pause", 10, 70, 20, LIGHTGRAY);
+                DrawText(TextFormat("Dash Cooldown: %.1f", dashCooldown > 0.0f ? dashCooldown : 0.0f), 10, 40, 20, DARKGRAY);
+                DrawText("Press W/S/A/D to move", 10, 70, 20, LIGHTGRAY);
+                DrawText("Press SPACE to pause", 10, 100, 20, LIGHTGRAY);
             }
         }
 
