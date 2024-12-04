@@ -159,8 +159,8 @@ int main(void)
                 if (MyCheckCollisionCircles(coinPositions, coinRadius, { squarePos.x + squareSize.x / 2, squarePos.y + squareSize.y / 2 }, squareSize.x / 2))
                 {
                     score += 1;
-                    coinPositions.x = GetRandomValue(ballRadius, screenWidth - coinRadius);
-                    coinPositions.y = GetRandomValue(ballRadius, screenHeight - coinRadius);
+                    coinPositions.x = (float)GetRandomValue(ballRadius, screenWidth - coinRadius);
+                    coinPositions.y = (float)GetRandomValue(ballRadius, screenHeight - coinRadius);
                 }
             }
 
@@ -209,15 +209,15 @@ int main(void)
             dashCooldown = 0.0f;
 
             //reset coins
-            coinPositions.x = GetRandomValue(ballRadius, screenWidth - coinRadius);
-            coinPositions.y = GetRandomValue(ballRadius, screenHeight - coinRadius);
+            coinPositions.x = (float)GetRandomValue(ballRadius, screenWidth - coinRadius);
+            coinPositions.y = (float)GetRandomValue(ballRadius, screenHeight - coinRadius);
             // Reset balls
             for (int i = 0; i < ballCount; i++)
             {
-                ballPositions[i].x = GetRandomValue(ballRadius, currentScreenWidth - ballRadius);
-                ballPositions[i].y = GetRandomValue(ballRadius, currentScreenHeight - ballRadius);
+                ballPositions[i].x = (float)GetRandomValue(ballRadius, currentScreenWidth - ballRadius);
+                ballPositions[i].y = (float)GetRandomValue(ballRadius, currentScreenHeight - ballRadius);
 
-                float angle = GetRandomValue(0, 360) * DEG2RAD;
+                float angle = (float)GetRandomValue(0, 360) * DEG2RAD;
                 ballSpeeds[i].x = ballSpeedValue * cos(angle);
                 ballSpeeds[i].y = ballSpeedValue * sin(angle);
             }
