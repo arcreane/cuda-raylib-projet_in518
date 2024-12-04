@@ -1,7 +1,6 @@
 #include "raylib.h"
 #include <math.h>
 #include <stdlib.h>
-#include <iostream> // For std::cout
 #include <time.h>
 
 // Function to detect collision between two circles
@@ -21,21 +20,32 @@ int main(void)
     SetConfigFlags(FLAG_MSAA_4X_HINT);//| FLAG_FULLSCREEN_MODE);
     InitWindow(screenWidth, screenHeight, "Bouncing Balls with Pause Functionality");
 
-    const int ballCount = 1;
+    const int ballCount = 10;
     const int ballRadius = 20;
     const float ballSpeedValue = 4.0f;
+    const int coinRadius = 10;
 
     Vector2 ballPositions[ballCount];
     Vector2 ballSpeeds[ballCount];
+    Vector2 coinPositions;
+    Color coinColors;
     Color ballColors[ballCount];
 
     srand(time(NULL));
 
     // Initialize ball positions, speeds, and colors
+    coinPositions.x = GetRandomValue(ballRadius, screenWidth - coinRadius);
+    coinPositions.y = GetRandomValue(ballRadius, screenHeight - coinRadius);
+    coinColors.r = 255;
+    coinColors.g = 215;
+    coinColors.b = 1;
+    coinColors.a = 255;
+
     for (int i = 0; i < ballCount; i++)
     {
         ballPositions[i].x = GetRandomValue(ballRadius, screenWidth - ballRadius);
         ballPositions[i].y = GetRandomValue(ballRadius, screenHeight - ballRadius);
+
 
         float angle = GetRandomValue(0, 360) * DEG2RAD;
         ballSpeeds[i].x = ballSpeedValue * cos(angle);
@@ -55,6 +65,7 @@ int main(void)
     const float dashDistance = 100.0f; // Distance of the dash
     const float dashCooldownTime = 3.0f; // Dash cooldown time in seconds
 
+    int score = 0;
     bool gameOver = false;
     bool pause = false;
     float survivalTime = 0.0f;
@@ -85,6 +96,7 @@ int main(void)
             for (int i = 0; i < ballCount; i++)
             {
                 // Move the balls
+
                 ballPositions[i].x += ballSpeeds[i].x * speedMultiplier;
                 ballPositions[i].y += ballSpeeds[i].y * speedMultiplier;
 
@@ -143,6 +155,13 @@ int main(void)
                 {
                     gameOver = true;
                 }
+
+                if (MyCheckCollisionCircles(coinPositions, coinRadius, { squarePos.x + squareSize.x / 2, squarePos.y + squareSize.y / 2 }, squareSize.x / 2))
+                {
+                    score += 1;
+                    coinPositions.x = GetRandomValue(ballRadius, screenWidth - coinRadius);
+                    coinPositions.y = GetRandomValue(ballRadius, screenHeight - coinRadius);
+                }
             }
 
             // Move the square
@@ -186,7 +205,12 @@ int main(void)
             gameOver = false;
             survivalTime = 0.0f;
             speedMultiplier = 1.0f;
+            score = 0;
+            dashCooldown = 0.0f;
 
+            //reset coins
+            coinPositions.x = GetRandomValue(ballRadius, screenWidth - coinRadius);
+            coinPositions.y = GetRandomValue(ballRadius, screenHeight - coinRadius);
             // Reset balls
             for (int i = 0; i < ballCount; i++)
             {
@@ -205,13 +229,16 @@ int main(void)
 
         for (int i = 0; i < ballCount; i++)
             DrawCircleV(ballPositions[i], ballRadius, ballColors[i]);
-
+        
+        DrawCircleV(coinPositions, coinRadius, coinColors);
         DrawRectangleV(squarePos, squareSize, BLUE);
 
         if (gameOver)
         {
             DrawText(TextFormat("Game Over! You survived %.2f seconds", survivalTime), 10, 10, 20, RED);
-            DrawText("Press ENTER to restart", 10, 40, 20, DARKGRAY);
+            DrawText(TextFormat("Your score is : %i.", score), 10, 40, 20, RED);
+            DrawText("Press ENTER to restart", 10, 70, 20, DARKGRAY);
+
         }
         else
         {
@@ -222,7 +249,7 @@ int main(void)
             }
             else
             {
-                DrawText(TextFormat("Time: %.2f", survivalTime), 10, 10, 20, DARKGRAY);
+                DrawText(TextFormat("Score: %i", score), 10, 10, 20, DARKGRAY);
                 DrawText(TextFormat("Dash Cooldown: %.1f", dashCooldown > 0.0f ? dashCooldown : 0.0f), 10, 40, 20, DARKGRAY);
                 DrawText("Press W/S/A/D to move", 10, 70, 20, LIGHTGRAY);
                 DrawText("Press SPACE to pause", 10, 100, 20, LIGHTGRAY);
