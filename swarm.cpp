@@ -3,6 +3,27 @@
 #include <stdlib.h>
 #include <time.h>
 
+#define MAX_PARTICLES 2000 // Maximum number of particles in the system
+#define PARTICLE_LIFETIME 1.0f // Lifetime in seconds
+
+typedef struct Particle {
+    Vector2 position;
+    Vector2 velocity;
+    Color color;
+    float lifetime; // Time remaining
+    bool active; // Is the particle active
+} Particle;
+
+Particle particles[MAX_PARTICLES];
+
+// Initialize particles
+void InitParticles() {
+    for (int i = 0; i < MAX_PARTICLES; i++) {
+        particles[i].active = false;
+    }
+}
+
+
 // Function to detect collision between two circles
 bool MyCheckCollisionCircles(Vector2 center1, float radius1, Vector2 center2, float radius2)
 {
@@ -25,6 +46,11 @@ int main(void)
     const int ballRadius = 20;
     const float ballSpeedValue = 2.5f;
 
+    bool ballActive[ballCount];
+    for (int i = 0; i < ballCount; i++) {
+        ballActive[i] = true;
+    }
+
     Vector2 ballPositions[ballCount];
     Vector2 ballSpeeds[ballCount];
     Color ballColors[ballCount];
@@ -38,6 +64,7 @@ int main(void)
     for (int i = 0; i < pewCount; i++) {
         pewActive[i] = false;
     }
+
     Vector2 pewPositions[pewCount];
     Vector2 pewSpeeds[pewCount];
     Color pewColors[pewCount];
@@ -75,11 +102,12 @@ int main(void)
     const float dashDistance = 100.0f; // Distance of the dash
     const float dashCooldownTime = 3.0f; // Dash cooldown time in seconds
 
-    float pewCooldown = 0.0f;  // Cooldown timer for the dash
+    float pewCooldown = 0.0f;  // Cooldown timer for the projectile
     const float pewCooldownTime = 1.0f;
 
     int score = 0;
     bool gameOver = false;
+    bool win = false;
     bool pause = false;
     float survivalTime = 0.0f;
     float speedMultiplier = 1.0f;
@@ -92,6 +120,23 @@ int main(void)
         int currentScreenWidth = GetScreenWidth();
         int currentScreenHeight = GetScreenHeight();
 
+
+        bool allBallsInactive = true;
+        for (int i = 0; i < ballCount; i++) {
+            if (ballActive[i]) { // If any ball is still active
+                allBallsInactive = false;
+                break; // No need to check further
+            }
+        }
+
+        if (allBallsInactive) {
+            // Player wins
+            DrawText("You Win!", screenWidth / 2 - MeasureText("You Win!", 40) / 2, screenHeight / 2 - 20, 40, GREEN);
+
+            // Optionally, pause the game or end the session
+            gameOver = true;
+            win = true;
+        }
 
         // Toggle pause on SPACE press, but only if the game is not over
         if (IsKeyPressed(KEY_SPACE) && !gameOver)
@@ -110,11 +155,58 @@ int main(void)
                 pewCooldown -= GetFrameTime();
 
             for (int i = 0; i < pewCount; i++)
+            {
                 if (pewActive[i] == true)
                 {
                     pewPositions[i].x += pewSpeeds[i].x;
                     pewPositions[i].y += pewSpeeds[i].y;
                 }
+
+                for (int y = 0; y < ballCount; y++)
+                {
+                    if (MyCheckCollisionCircles(ballPositions[y], ballRadius, pewPositions[i], pewRadius) && ballActive[y] && pewActive[i]) {
+                        ballActive[y] = false;
+                        pewActive[i] = false;
+
+                        // Spawn particles at the collision point
+                        for (int p = 0; p < 200; p++) {
+                            for (int j = 0; j < MAX_PARTICLES; j++) {
+                                if (!particles[j].active) {
+                                    particles[j].active = true;
+                                    particles[j].position = ballPositions[y];
+                                    particles[j].velocity.x = GetRandomValue(-100, 100) / 100.0f; // Random velocity
+                                    particles[j].velocity.y = GetRandomValue(-100, 100) / 100.0f;
+                                    particles[j].color.r = 255; // Red
+                                    particles[j].color.g = 0;   // Green
+                                    particles[j].color.b = 0;   // Blue
+                                    particles[j].color.a = 255; // Full opacity
+
+                                    particles[j].lifetime = PARTICLE_LIFETIME;
+                                    break; // Move to the next particle slot
+                                }
+                            }
+                        }
+                    }
+
+                }
+            }
+            for (int i = 0; i < MAX_PARTICLES; i++) {
+                if (particles[i].active) {
+                    // Update position
+                    particles[i].position.x += particles[i].velocity.x;
+                    particles[i].position.y += particles[i].velocity.y;
+
+                    // Update lifetime
+                    particles[i].lifetime -= GetFrameTime();
+                    if (particles[i].lifetime <= 0) {
+                        particles[i].active = false; // Deactivate the particle
+                    }
+
+                    // Fade out
+                    particles[i].color.a = (unsigned char)(255 * (particles[i].lifetime / PARTICLE_LIFETIME));
+                }
+            }
+
 
             for (int i = 0; i < ballCount; i++)
             {
@@ -146,7 +238,7 @@ int main(void)
                     ballSpeeds[i].y *= -1.0f;
 
                 // Check collision with the square
-                if (MyCheckCollisionCircles(ballPositions[i], ballRadius,{squarePos.x + squareSize.x / 2, squarePos.y + squareSize.y / 2}, squareSize.x / 2))
+                if (MyCheckCollisionCircles(ballPositions[i], ballRadius,{squarePos.x + squareSize.x / 2, squarePos.y + squareSize.y / 2}, squareSize.x / 2) && ballActive[i] == true)
                 {
                     gameOver = true;
                 }
@@ -192,36 +284,52 @@ int main(void)
             if (IsMouseButtonDown(MOUSE_LEFT_BUTTON) && pewCooldown <= 0.0f)
             {
                 for (int i = 0; i < pewCount; i++) {
-                    if (pewActive[i] == false)
+                    if (!pewActive[i]) // Find an inactive projectile
                     {
                         pewActive[i] = true;
-                        pewPositions[i].x = squarePos.x;
-                        pewPositions[i].y = squarePos.y;
-                        pewSpeeds[i].x = 0;
-                        pewSpeeds[i].y = 0;
 
-                        if (IsKeyDown(KEY_W))
-                            pewSpeeds[i].x = -1 * pewSpeedValue;
-                        if (IsKeyDown(KEY_S))
-                            pewSpeeds[i].x = 1 * pewSpeedValue;
-                        if (IsKeyDown(KEY_A))
-                            pewSpeeds[i].y = -1 * pewSpeedValue;
-                        if (IsKeyDown(KEY_D))
-                            pewSpeeds[i].y = 1 * pewSpeedValue;
+                        // Set initial position of the projectile (center of the player)
+                        pewPositions[i].x = squarePos.x + squareSize.x / 2;
+                        pewPositions[i].y = squarePos.y + squareSize.y / 2;
+
+                        // Get the mouse position
+                        Vector2 mousePos = GetMousePosition();
+
+                        // Calculate direction vector
+                        Vector2 direction = {
+                            mousePos.x - pewPositions[i].x,
+                            mousePos.y - pewPositions[i].y
+                        };
+
+                        // Normalize the direction vector
+                        float length = sqrt(direction.x * direction.x + direction.y * direction.y);
+                        if (length != 0) {
+                            direction.x /= length;
+                            direction.y /= length;
+                        }
+
+                        // Assign speed to the projectile
+                        pewSpeeds[i].x = direction.x * pewSpeedValue;
+                        pewSpeeds[i].y = direction.y * pewSpeedValue;
+
+                        // Start pew cooldown
+                        pewCooldown = pewCooldownTime;
+                        break; // Fire one projectile at a time
                     }
                 }
-
-                // Start pew cooldown
-                pewCooldown = pewCooldownTime;
             }
+
+
         }
         else if (gameOver && IsKeyPressed(KEY_ENTER))
         {
             gameOver = false;
+            win = false;
             survivalTime = 0.0f;
             speedMultiplier = 1.0f;
             score = 0;
             dashCooldown = 0.0f;
+            pewCooldown = 0.0f;
 
             // Reset balls
             for (int i = 0; i < ballCount; i++)
@@ -239,8 +347,18 @@ int main(void)
         BeginDrawing();
         ClearBackground(BLACK);
 
+        for (int i = 0; i < MAX_PARTICLES; i++) {
+            if (particles[i].active) {
+                DrawCircleV(particles[i].position, 3.0f, particles[i].color);
+            }
+        }
+
+
         for (int i = 0; i < ballCount; i++)
-            DrawCircleV(ballPositions[i], ballRadius, ballColors[i]);
+            if (ballActive[i] == true)
+            {
+                DrawCircleV(ballPositions[i], ballRadius, ballColors[i]);
+            }
 
         for (int i = 0; i < pewCount; i++)
             if (pewActive[i] == true)
@@ -267,7 +385,7 @@ int main(void)
             else
             {
                 DrawText(TextFormat("Score: %i", score), 10, 10, 20, DARKGRAY);
-                DrawText(TextFormat("Dash Cooldown: %.1f", dashCooldown > 0.0f ? dashCooldown : 0.0f), 10, 40, 20, DARKGRAY);
+                DrawText(TextFormat("Pew Cooldown: %.1f", pewCooldown > 0.0f ? dashCooldown : 0.0f), 10, 40, 20, DARKGRAY);
                 DrawText("Press W/S/A/D to move", 10, 70, 20, LIGHTGRAY);
                 DrawText("Press SPACE to pause", 10, 100, 20, LIGHTGRAY);
             }
