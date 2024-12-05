@@ -81,11 +81,14 @@ int main(void)
     InitWindow(screenWidth, screenHeight, "Bouncing Balls with Pause Functionality");
 
     //ball setup
+    Texture2D ennemiespriteL = LoadTexture("ennemiesL.png");
+    Texture2D ennemiespriteR = LoadTexture("ennemiesR.png");
     const int ballCount = 15;
     const int ballRadius = 20;
     const float ballSpeedValue = 2.5f;
     bool ballActive[ballCount];
-
+    bool ballIsfacingright[ballCount];
+    Vector2 ennemieSize = {23,39};
     Vector2 ballPositions[ballCount];
     Vector2 ballSpeeds[ballCount];
     Color ballColors[ballCount];
@@ -96,18 +99,13 @@ int main(void)
     for (int i = 0; i < ballCount; i++)
     {
         ballActive[i] = true;
+        ballIsfacingright[i] = true;
         int borderWidth = 50; // Width of the border area where enemies can spawn
 
         ballPositions[i] = spawnpos();
         float angle = GetRandomValue(0, 360) * DEG2RAD;
         ballSpeeds[i].x = ballSpeedValue * cos(angle);
         ballSpeeds[i].y = ballSpeedValue * sin(angle);
-
-        // Assign a random unique color to each ball
-        ballColors[i].r = GetRandomValue(10, 50);
-        ballColors[i].g = GetRandomValue(150, 255);
-        ballColors[i].b = GetRandomValue(10, 50);
-        ballColors[i].a = 255;
     }
 
     //pew setup
@@ -284,6 +282,14 @@ int main(void)
                     direction.y /= length;
                 }
 
+                // Check if the enemy is facing right or left
+                if (direction.x > 0) {
+                    ballIsfacingright[i] = true; // Enemy is facing right
+                }
+                else{
+                    ballIsfacingright[i] = false; // Enemy is facing left
+                }
+
                 // Set ball speeds to move toward the player
                 ballSpeeds[i].x = direction.x * ballSpeedValue * speedMultiplier;
                 ballSpeeds[i].y = direction.y * ballSpeedValue * speedMultiplier;
@@ -429,7 +435,24 @@ int main(void)
             for (int i = 0; i < ballCount; i++)
                 if (ballActive[i] == true)
                 {
-                    DrawCircleV(ballPositions[i], ballRadius, ballColors[i]);
+                    Vector2 drawPosition = {ballPositions[i].x - ennemieSize.x / 2,ballPositions[i].y - ennemieSize.y / 2};
+                    if (ballIsfacingright[i])
+                        DrawTextureEx(
+                            ennemiespriteR,
+                            drawPosition,
+                            0.0f,
+                            1.0f,
+                            WHITE
+                        );
+                    else
+                        DrawTextureEx(
+                            ennemiespriteL,
+                            drawPosition,
+                            0.0f,
+                            1.0f,
+                            WHITE
+                        );
+
                 }
 
             for (int i = 0; i < pewCount; i++)
@@ -437,7 +460,6 @@ int main(void)
                 {
                     DrawCircleV(pewPositions[i], pewRadius, pewColors[i]);
                 }
-
 
             //player draw
             Vector2 drawPosition = { squarePos.x, squarePos.y };
@@ -458,6 +480,8 @@ int main(void)
                     WHITE                       
                 );
 
+
+
             //DrawRectangleV(squarePos, squareSize, BLUE);
 
             if (gameOver)
@@ -477,7 +501,7 @@ int main(void)
                 else
                 {
                     DrawText(TextFormat("Score: %i", score), 10, 10, 20, DARKGRAY);
-                    DrawText(TextFormat("Pew Cooldown: %.1f", pewCooldown > 0.0f ? dashCooldown : 0.0f), 10, 40, 20, DARKGRAY);
+                    DrawText(TextFormat("Dash Cooldown: %.1f", dashCooldown > 0.0f ? dashCooldown : 0.0f), 10, 40, 20, DARKGRAY);
                     DrawText("Press W/S/A/D to move", 10, 70, 20, LIGHTGRAY);
                     DrawText("Press SPACE to pause", 10, 100, 20, LIGHTGRAY);
                 }
@@ -489,6 +513,8 @@ int main(void)
         CloseWindow();
         UnloadTexture(playerSpriteR);
         UnloadTexture(playerSpriteL);
+        UnloadTexture(ennemiespriteR);
+        UnloadTexture(ennemiespriteL);
         UnloadTexture(background);
         return 0;
    
