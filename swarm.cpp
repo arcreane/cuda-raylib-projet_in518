@@ -88,8 +88,10 @@ int main(void)
     SetSoundVolume(projectileLaunchSound, 0.8f);
     PlayMusicStream(music);
     //ball setup
+
     Texture2D ennemiespriteL = LoadTexture("ennemiesL.png");
     Texture2D ennemiespriteR = LoadTexture("ennemiesR.png");
+
     const int ballCount = 15;
     const int ballRadius = 20;
     const float ballSpeedValue = 2.5f;
@@ -226,13 +228,12 @@ int main(void)
                                 if (!particles[j].active) {
                                     particles[j].active = true;
                                     particles[j].position = ballPositions[y];
-                                    particles[j].velocity.x = GetRandomValue(-250, 250) / 100.0f; // Random velocity
-                                    particles[j].velocity.y = GetRandomValue(-250, 250) / 100.0f;
+                                    particles[j].velocity.x = GetRandomValue(-300, 300) / 100.0f; // Random velocity
+                                    particles[j].velocity.y = GetRandomValue(-300, 300) / 100.0f;
                                     particles[j].color.r = GetRandomValue(150, 255); // Red
                                     particles[j].color.g = 0;   // Green
                                     particles[j].color.b = 0;   // Blue
                                     particles[j].color.a = 255; // Full opacity
-
                                     particles[j].lifetime = PARTICLE_LIFETIME;
                                     break; // Move to the next particle slot
                                 }
@@ -320,6 +321,7 @@ int main(void)
                     gameOver = true;
                     DrawText("You DIE!", screenWidth / 2 - MeasureText("You DIE!", 40) / 2, screenHeight / 2 - 20, 40, RED);
                     win = false;
+                    PauseMusicStream(music);
                 }
             }
 
@@ -407,7 +409,7 @@ int main(void)
             }
             else if (gameOver && IsKeyPressed(KEY_ENTER))
             {
-
+                ResumeMusicStream(music);
                 gameOver = false;
                 win = false;
                 survivalTime = 0.0f;
