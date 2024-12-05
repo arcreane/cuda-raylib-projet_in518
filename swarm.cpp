@@ -42,7 +42,7 @@ int main(void)
     InitWindow(screenWidth, screenHeight, "Bouncing Balls with Pause Functionality");
 
     //ball setup
-    const int ballCount = 10;
+    const int ballCount = 15;
     const int ballRadius = 20;
     const float ballSpeedValue = 2.5f;
 
@@ -74,9 +74,35 @@ int main(void)
     // Initialize ball positions, speeds, and colors
     for (int i = 0; i < ballCount; i++)
     {
-        ballPositions[i].x = GetRandomValue(ballRadius, screenWidth - ballRadius);
-        ballPositions[i].y = GetRandomValue(ballRadius, screenHeight - ballRadius);
+        int borderWidth = 200; // Width of the border area where enemies can spawn
 
+        // Randomly determine if the enemy spawns in the horizontal or vertical border
+        if (GetRandomValue(0, 1) == 0) {
+            // Horizontal border spawn
+            if (GetRandomValue(0, 1) == 0) {
+                // Top border
+                ballPositions[i].x = GetRandomValue(ballRadius, screenWidth - ballRadius);
+                ballPositions[i].y = GetRandomValue(ballRadius, borderWidth);
+            }
+            else {
+                // Bottom border
+                ballPositions[i].x = GetRandomValue(ballRadius, screenWidth - ballRadius);
+                ballPositions[i].y = GetRandomValue(screenHeight - borderWidth, screenHeight - ballRadius);
+            }
+        }
+        else {
+            // Vertical border spawn
+            if (GetRandomValue(0, 1) == 0) {
+                // Left border
+                ballPositions[i].x = GetRandomValue(ballRadius, borderWidth);
+                ballPositions[i].y = GetRandomValue(ballRadius, screenHeight - ballRadius);
+            }
+            else {
+                // Right border
+                ballPositions[i].x = GetRandomValue(screenWidth - borderWidth, screenWidth - ballRadius);
+                ballPositions[i].y = GetRandomValue(ballRadius, screenHeight - ballRadius);
+            }
+        }
 
         float angle = GetRandomValue(0, 360) * DEG2RAD;
         ballSpeeds[i].x = ballSpeedValue * cos(angle);
@@ -95,8 +121,13 @@ int main(void)
         pewColors[i].a = 255;
     }
 
+
+    Texture2D playerSpriteR = LoadTexture("playerR.png");
+    Texture2D playerSpriteL = LoadTexture("playerL.png");
+    Texture2D background = LoadTexture("ground.png");
     Vector2 squarePos = { screenWidth / 2, screenHeight / 2 };
-    Vector2 squareSize = { 30, 30 };
+    Vector2 squareSize = {26,54};
+    bool facingRight = true;
 
     float dashCooldown = 0.0f;  // Cooldown timer for the dash
     const float dashDistance = 100.0f; // Distance of the dash
@@ -133,7 +164,6 @@ int main(void)
             // Player wins
             DrawText("You Win!", screenWidth / 2 - MeasureText("You Win!", 40) / 2, screenHeight / 2 - 20, 40, GREEN);
 
-            // Optionally, pause the game or end the session
             gameOver = true;
             win = true;
         }
@@ -167,6 +197,7 @@ int main(void)
                     if (MyCheckCollisionCircles(ballPositions[y], ballRadius, pewPositions[i], pewRadius) && ballActive[y] && pewActive[i]) {
                         ballActive[y] = false;
                         pewActive[i] = false;
+                        score += 10;
 
                         // Spawn particles at the collision point
                         for (int p = 0; p < 200; p++) {
@@ -174,9 +205,9 @@ int main(void)
                                 if (!particles[j].active) {
                                     particles[j].active = true;
                                     particles[j].position = ballPositions[y];
-                                    particles[j].velocity.x = GetRandomValue(-100, 100) / 100.0f; // Random velocity
-                                    particles[j].velocity.y = GetRandomValue(-100, 100) / 100.0f;
-                                    particles[j].color.r = 255; // Red
+                                    particles[j].velocity.x = GetRandomValue(-250, 250) / 100.0f; // Random velocity
+                                    particles[j].velocity.y = GetRandomValue(-250, 250) / 100.0f;
+                                    particles[j].color.r = GetRandomValue(150, 255); // Red
                                     particles[j].color.g = 0;   // Green
                                     particles[j].color.b = 0;   // Blue
                                     particles[j].color.a = 255; // Full opacity
@@ -238,163 +269,197 @@ int main(void)
                     ballSpeeds[i].y *= -1.0f;
 
                 // Check collision with the square
-                if (MyCheckCollisionCircles(ballPositions[i], ballRadius,{squarePos.x + squareSize.x / 2, squarePos.y + squareSize.y / 2}, squareSize.x / 2) && ballActive[i] == true)
+                if (MyCheckCollisionCircles(ballPositions[i], ballRadius, { squarePos.x + squareSize.x / 2, squarePos.y + squareSize.y / 2 }, squareSize.x / 2) && ballActive[i] == true)
                 {
                     gameOver = true;
+                    DrawText("You DIE!", screenWidth / 2 - MeasureText("You DIE!", 40) / 2, screenHeight / 2 - 20, 40, RED);
+                    win = false;
                 }
             }
 
 
-            // Move the square
+            // Movement logic
             if (IsKeyDown(KEY_W) && squarePos.y > 0)
                 squarePos.y -= 5;
             if (IsKeyDown(KEY_S) && squarePos.y + squareSize.y < currentScreenHeight)
                 squarePos.y += 5;
-            if (IsKeyDown(KEY_A) && squarePos.x > 0)
+            if (IsKeyDown(KEY_A) && squarePos.x > 0) {
                 squarePos.x -= 5;
-            if (IsKeyDown(KEY_D) && squarePos.x + squareSize.x < currentScreenWidth)
+                facingRight = false;
+            }
+            if (IsKeyDown(KEY_D) && squarePos.x + squareSize.x < currentScreenWidth) {
                 squarePos.x += 5;
-
-            //dash 
-            if (IsKeyPressed(KEY_LEFT_SHIFT) && dashCooldown <= 0.0f)
-            {
-                if (IsKeyDown(KEY_W) && squarePos.y > 0)
-                    squarePos.y = dashDistance;
-                if (IsKeyDown(KEY_S) && squarePos.y + squareSize.y < currentScreenHeight)
-                    squarePos.y += dashDistance;
-                if (IsKeyDown(KEY_A) && squarePos.x > 0)
-                    squarePos.x -= dashDistance;
-                if (IsKeyDown(KEY_D) && squarePos.x + squareSize.x < currentScreenWidth)
-                    squarePos.x += dashDistance;
-
-                // Ensure the square stays within bounds
-                if (squarePos.x < 0)
-                    squarePos.x = 0;
-                if (squarePos.y < 0)
-                    squarePos.y = 0;
-                if (squarePos.x + squareSize.x > currentScreenWidth)
-                    squarePos.x = currentScreenWidth - squareSize.x;
-                if (squarePos.y + squareSize.y > currentScreenHeight)
-                    squarePos.y = currentScreenHeight - squareSize.y;
-
-                // Start dash cooldown
-                dashCooldown = dashCooldownTime;
+                facingRight = true;
             }
 
-            if (IsMouseButtonDown(MOUSE_LEFT_BUTTON) && pewCooldown <= 0.0f)
-            {
-                for (int i = 0; i < pewCount; i++) {
-                    if (!pewActive[i]) // Find an inactive projectile
-                    {
-                        pewActive[i] = true;
+                //dash 
+                if (IsKeyPressed(KEY_LEFT_SHIFT) && dashCooldown <= 0.0f)
+                {
+                    if (IsKeyDown(KEY_W) && squarePos.y > 0)
+                        squarePos.y = dashDistance;
+                    if (IsKeyDown(KEY_S) && squarePos.y + squareSize.y < currentScreenHeight)
+                        squarePos.y += dashDistance;
+                    if (IsKeyDown(KEY_A) && squarePos.x > 0)
+                        squarePos.x -= dashDistance;
+                    if (IsKeyDown(KEY_D) && squarePos.x + squareSize.x < currentScreenWidth)
+                        squarePos.x += dashDistance;
 
-                        // Set initial position of the projectile (center of the player)
-                        pewPositions[i].x = squarePos.x + squareSize.x / 2;
-                        pewPositions[i].y = squarePos.y + squareSize.y / 2;
+                    // Ensure the square stays within bounds
+                    if (squarePos.x < 0)
+                        squarePos.x = 0;
+                    if (squarePos.y < 0)
+                        squarePos.y = 0;
+                    if (squarePos.x + squareSize.x > currentScreenWidth)
+                        squarePos.x = currentScreenWidth - squareSize.x;
+                    if (squarePos.y + squareSize.y > currentScreenHeight)
+                        squarePos.y = currentScreenHeight - squareSize.y;
 
-                        // Get the mouse position
-                        Vector2 mousePos = GetMousePosition();
+                    // Start dash cooldown
+                    dashCooldown = dashCooldownTime;
+                }
 
-                        // Calculate direction vector
-                        Vector2 direction = {
-                            mousePos.x - pewPositions[i].x,
-                            mousePos.y - pewPositions[i].y
-                        };
+                if (IsMouseButtonDown(MOUSE_LEFT_BUTTON) && pewCooldown <= 0.0f)
+                {
+                    for (int i = 0; i < pewCount; i++) {
+                        if (!pewActive[i]) // Find an inactive projectile
+                        {
+                            pewActive[i] = true;
 
-                        // Normalize the direction vector
-                        float length = sqrt(direction.x * direction.x + direction.y * direction.y);
-                        if (length != 0) {
-                            direction.x /= length;
-                            direction.y /= length;
+                            // Set initial position of the projectile (center of the player)
+                            pewPositions[i].x = squarePos.x + squareSize.x / 2;
+                            pewPositions[i].y = squarePos.y + squareSize.y / 2;
+
+                            // Get the mouse position
+                            Vector2 mousePos = GetMousePosition();
+
+                            // Calculate direction vector
+                            Vector2 direction = {
+                                mousePos.x - pewPositions[i].x,
+                                mousePos.y - pewPositions[i].y
+                            };
+
+                            // Normalize the direction vector
+                            float length = sqrt(direction.x * direction.x + direction.y * direction.y);
+                            if (length != 0) {
+                                direction.x /= length;
+                                direction.y /= length;
+                            }
+
+                            // Assign speed to the projectile
+                            pewSpeeds[i].x = direction.x * pewSpeedValue;
+                            pewSpeeds[i].y = direction.y * pewSpeedValue;
+
+                            // Start pew cooldown
+                            pewCooldown = pewCooldownTime;
+                            break; // Fire one projectile at a time
                         }
-
-                        // Assign speed to the projectile
-                        pewSpeeds[i].x = direction.x * pewSpeedValue;
-                        pewSpeeds[i].y = direction.y * pewSpeedValue;
-
-                        // Start pew cooldown
-                        pewCooldown = pewCooldownTime;
-                        break; // Fire one projectile at a time
                     }
+                }
+
+
+            }
+            else if (gameOver && IsKeyPressed(KEY_ENTER))
+            {
+
+                gameOver = false;
+                win = false;
+                survivalTime = 0.0f;
+                speedMultiplier = 1.0f;
+                score = 0;
+                dashCooldown = 0.0f;
+                pewCooldown = 0.0f;
+                squarePos.x = screenWidth / 2;
+                squarePos.y = screenHeight / 2;
+
+                // Reset balls
+                for (int i = 0; i < ballCount; i++)
+                {
+                    ballPositions[i].x = (float)GetRandomValue(ballRadius, currentScreenWidth - ballRadius);
+                    ballPositions[i].y = (float)GetRandomValue(ballRadius, currentScreenHeight - ballRadius);
+
+                    float angle = (float)GetRandomValue(0, 360) * DEG2RAD;
+                    ballSpeeds[i].x = ballSpeedValue * cos(angle);
+                    ballSpeeds[i].y = ballSpeedValue * sin(angle);
+                    ballActive[i] = true;
                 }
             }
 
+            // Draw
+            BeginDrawing();
+            ClearBackground(BLACK);
 
-        }
-        else if (gameOver && IsKeyPressed(KEY_ENTER))
-        {
-            gameOver = false;
-            win = false;
-            survivalTime = 0.0f;
-            speedMultiplier = 1.0f;
-            score = 0;
-            dashCooldown = 0.0f;
-            pewCooldown = 0.0f;
+            DrawTexture(background, 0, 0, WHITE);
+            for (int i = 0; i < MAX_PARTICLES; i++) {
+                if (particles[i].active) {
+                    DrawCircleV(particles[i].position, 3.0f, particles[i].color);
+                }
+            }
 
-            // Reset balls
             for (int i = 0; i < ballCount; i++)
+                if (ballActive[i] == true)
+                {
+                    DrawCircleV(ballPositions[i], ballRadius, ballColors[i]);
+                }
+
+            for (int i = 0; i < pewCount; i++)
+                if (pewActive[i] == true)
+                {
+                    DrawCircleV(pewPositions[i], pewRadius, pewColors[i]);
+                }
+
+
+            //player draw
+            Vector2 drawPosition = { squarePos.x, squarePos.y };
+            if (facingRight)
+                DrawTextureEx(
+                    playerSpriteR,              
+                    drawPosition,              
+                    0.0f,                     
+                    1.0f,                    
+                    WHITE                      
+                );
+            else
+                DrawTextureEx(
+                    playerSpriteL,               
+                    drawPosition,              
+                    0.0f,                       
+                    1.0f,                       
+                    WHITE                       
+                );
+
+            //DrawRectangleV(squarePos, squareSize, BLUE);
+
+            if (gameOver)
             {
-                ballPositions[i].x = (float)GetRandomValue(ballRadius, currentScreenWidth - ballRadius);
-                ballPositions[i].y = (float)GetRandomValue(ballRadius, currentScreenHeight - ballRadius);
+                DrawText(TextFormat("Game Over! You survived %.2f seconds", survivalTime), 10, 10, 20, RED);
+                DrawText(TextFormat("Your score is : %i.", score), 10, 40, 20, RED);
+                DrawText("Press ENTER to restart", 10, 70, 20, DARKGRAY);
 
-                float angle = (float)GetRandomValue(0, 360) * DEG2RAD;
-                ballSpeeds[i].x = ballSpeedValue * cos(angle);
-                ballSpeeds[i].y = ballSpeedValue * sin(angle);
-            }
-        }
-
-        // Draw
-        BeginDrawing();
-        ClearBackground(BLACK);
-
-        for (int i = 0; i < MAX_PARTICLES; i++) {
-            if (particles[i].active) {
-                DrawCircleV(particles[i].position, 3.0f, particles[i].color);
-            }
-        }
-
-
-        for (int i = 0; i < ballCount; i++)
-            if (ballActive[i] == true)
-            {
-                DrawCircleV(ballPositions[i], ballRadius, ballColors[i]);
-            }
-
-        for (int i = 0; i < pewCount; i++)
-            if (pewActive[i] == true)
-            {
-                DrawCircleV(pewPositions[i], pewRadius, pewColors[i]);
-            }
-
-        DrawRectangleV(squarePos, squareSize, BLUE);
-
-        if (gameOver)
-        {
-            DrawText(TextFormat("Game Over! You survived %.2f seconds", survivalTime), 10, 10, 20, RED);
-            DrawText(TextFormat("Your score is : %i.", score), 10, 40, 20, RED);
-            DrawText("Press ENTER to restart", 10, 70, 20, DARKGRAY);
-
-        }
-        else
-        {
-            if (pause)
-            {
-                DrawText("Paused", currentScreenWidth / 2 - MeasureText("Paused", 40) / 2, currentScreenHeight / 2 - 20, 40, GRAY);
-                DrawText("Press SPACE to resume", currentScreenWidth / 2 - MeasureText("Press SPACE to resume", 20) / 2, currentScreenHeight / 2 + 20, 20, DARKGRAY);
             }
             else
             {
-                DrawText(TextFormat("Score: %i", score), 10, 10, 20, DARKGRAY);
-                DrawText(TextFormat("Pew Cooldown: %.1f", pewCooldown > 0.0f ? dashCooldown : 0.0f), 10, 40, 20, DARKGRAY);
-                DrawText("Press W/S/A/D to move", 10, 70, 20, LIGHTGRAY);
-                DrawText("Press SPACE to pause", 10, 100, 20, LIGHTGRAY);
+                if (pause)
+                {
+                    DrawText("Paused", currentScreenWidth / 2 - MeasureText("Paused", 40) / 2, currentScreenHeight / 2 - 20, 40, GRAY);
+                    DrawText("Press SPACE to resume", currentScreenWidth / 2 - MeasureText("Press SPACE to resume", 20) / 2, currentScreenHeight / 2 + 20, 20, DARKGRAY);
+                }
+                else
+                {
+                    DrawText(TextFormat("Score: %i", score), 10, 10, 20, DARKGRAY);
+                    DrawText(TextFormat("Pew Cooldown: %.1f", pewCooldown > 0.0f ? dashCooldown : 0.0f), 10, 40, 20, DARKGRAY);
+                    DrawText("Press W/S/A/D to move", 10, 70, 20, LIGHTGRAY);
+                    DrawText("Press SPACE to pause", 10, 100, 20, LIGHTGRAY);
+                }
             }
+
+            EndDrawing();
         }
 
-        EndDrawing();
-    }
-
-    CloseWindow();
-    return 0;
+        CloseWindow();
+        UnloadTexture(playerSpriteR);
+        UnloadTexture(playerSpriteL);
+        UnloadTexture(background);
+        return 0;
+   
 }
 
