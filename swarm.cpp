@@ -23,6 +23,45 @@ void InitParticles() {
     }
 }
 
+Vector2 spawnpos() {
+    int borderWidth = 50; // Width of the border area where enemies can spawn
+    int x, y;
+    int screenWidth = 1600;
+    int screenHeight = 900;
+    int ballRadius = 20;
+
+    // Randomly determine if the enemy spawns in the horizontal or vertical border
+    if (GetRandomValue(0, 1) == 0) {
+        // Horizontal border spawn
+        if (GetRandomValue(0, 1) == 0) {
+            // Top border
+            x = GetRandomValue(ballRadius, screenWidth - ballRadius);
+            y = GetRandomValue(ballRadius, borderWidth);
+        }
+        else {
+            // Bottom border
+            x = GetRandomValue(ballRadius, screenWidth - ballRadius);
+            y = GetRandomValue(screenHeight - borderWidth, screenHeight - ballRadius);
+        }
+    }
+    else {
+        // Vertical border spawn
+        if (GetRandomValue(0, 1) == 0) {
+            // Left border
+            x = GetRandomValue(ballRadius, borderWidth);
+            y = GetRandomValue(ballRadius, screenHeight - ballRadius);
+        }
+        else {
+            // Right border
+            x = GetRandomValue(screenWidth - borderWidth, screenWidth - ballRadius);
+            y = GetRandomValue(ballRadius, screenHeight - ballRadius);
+        }
+    }
+    Vector2 spawnPosition; // Explicitly define a Vector2 variable
+    spawnPosition.x = x;
+    spawnPosition.y = y;
+    return spawnPosition; // Return the explicitly initialized Vector2
+}
 
 // Function to detect collision between two circles
 bool MyCheckCollisionCircles(Vector2 center1, float radius1, Vector2 center2, float radius2)
@@ -37,7 +76,7 @@ int main(void)
 
     int screenWidth = 1600;
     int screenHeight = 900;
-
+    
     SetConfigFlags(FLAG_MSAA_4X_HINT);//| FLAG_FULLSCREEN_MODE);
     InitWindow(screenWidth, screenHeight, "Bouncing Balls with Pause Functionality");
 
@@ -45,65 +84,21 @@ int main(void)
     const int ballCount = 15;
     const int ballRadius = 20;
     const float ballSpeedValue = 2.5f;
-
     bool ballActive[ballCount];
-    for (int i = 0; i < ballCount; i++) {
-        ballActive[i] = true;
-    }
 
     Vector2 ballPositions[ballCount];
     Vector2 ballSpeeds[ballCount];
     Color ballColors[ballCount];
-
-    //pew setup
-    const int pewCount = 10;
-    const int pewRadius = 5;
-    const float pewSpeedValue = 10.0f;
-
-    bool pewActive[pewCount];
-    for (int i = 0; i < pewCount; i++) {
-        pewActive[i] = false;
-    }
-
-    Vector2 pewPositions[pewCount];
-    Vector2 pewSpeeds[pewCount];
-    Color pewColors[pewCount];
 
     srand(time(NULL));
 
     // Initialize ball positions, speeds, and colors
     for (int i = 0; i < ballCount; i++)
     {
-        int borderWidth = 200; // Width of the border area where enemies can spawn
+        ballActive[i] = true;
+        int borderWidth = 50; // Width of the border area where enemies can spawn
 
-        // Randomly determine if the enemy spawns in the horizontal or vertical border
-        if (GetRandomValue(0, 1) == 0) {
-            // Horizontal border spawn
-            if (GetRandomValue(0, 1) == 0) {
-                // Top border
-                ballPositions[i].x = GetRandomValue(ballRadius, screenWidth - ballRadius);
-                ballPositions[i].y = GetRandomValue(ballRadius, borderWidth);
-            }
-            else {
-                // Bottom border
-                ballPositions[i].x = GetRandomValue(ballRadius, screenWidth - ballRadius);
-                ballPositions[i].y = GetRandomValue(screenHeight - borderWidth, screenHeight - ballRadius);
-            }
-        }
-        else {
-            // Vertical border spawn
-            if (GetRandomValue(0, 1) == 0) {
-                // Left border
-                ballPositions[i].x = GetRandomValue(ballRadius, borderWidth);
-                ballPositions[i].y = GetRandomValue(ballRadius, screenHeight - ballRadius);
-            }
-            else {
-                // Right border
-                ballPositions[i].x = GetRandomValue(screenWidth - borderWidth, screenWidth - ballRadius);
-                ballPositions[i].y = GetRandomValue(ballRadius, screenHeight - ballRadius);
-            }
-        }
-
+        ballPositions[i] = spawnpos();
         float angle = GetRandomValue(0, 360) * DEG2RAD;
         ballSpeeds[i].x = ballSpeedValue * cos(angle);
         ballSpeeds[i].y = ballSpeedValue * sin(angle);
@@ -113,8 +108,20 @@ int main(void)
         ballColors[i].g = GetRandomValue(150, 255);
         ballColors[i].b = GetRandomValue(10, 50);
         ballColors[i].a = 255;
+    }
 
-        // Assign a random unique color to each ball
+    //pew setup
+    const int pewCount = 10;
+    const int pewRadius = 5;
+    const float pewSpeedValue = 10.0f;
+
+    Vector2 pewPositions[pewCount];
+    Vector2 pewSpeeds[pewCount];
+    Color pewColors[pewCount];
+
+    bool pewActive[pewCount];
+    for (int i = 0; i < pewCount; i++) {
+        pewActive[i] = false;
         pewColors[i].r = GetRandomValue(150, 255);
         pewColors[i].g = GetRandomValue(10, 50);
         pewColors[i].b = GetRandomValue(10, 50);
@@ -142,6 +149,11 @@ int main(void)
     bool pause = false;
     float survivalTime = 0.0f;
     float speedMultiplier = 1.0f;
+
+    float respawnTimer = 0.0f;
+    const float respawnTimerTime = 1.5f;
+
+
 
     SetTargetFPS(60);
 
@@ -180,6 +192,8 @@ int main(void)
             speedMultiplier += GetFrameTime() * 0.01f; // Increase speed gradually
             if (dashCooldown > 0.0f)
                 dashCooldown -= GetFrameTime();
+
+
 
             if (pewCooldown > 0.0f)
                 pewCooldown -= GetFrameTime();
@@ -221,6 +235,7 @@ int main(void)
 
                 }
             }
+
             for (int i = 0; i < MAX_PARTICLES; i++) {
                 if (particles[i].active) {
                     // Update position
@@ -238,6 +253,22 @@ int main(void)
                 }
             }
 
+            //respawn
+            if (respawnTimer > 0.0f)
+                respawnTimer -= GetFrameTime();
+
+            if (respawnTimer <= 0.0f) {
+                for (int i = 0; i < ballCount; i++)
+                {
+                    if (!ballActive[i]) {
+                        ballActive[i] = true;
+                        ballPositions[i] = spawnpos();
+                        respawnTimer = respawnTimerTime;
+                        break;
+                    }
+
+                }
+            }
 
             for (int i = 0; i < ballCount; i++)
             {
@@ -374,8 +405,8 @@ int main(void)
                 // Reset balls
                 for (int i = 0; i < ballCount; i++)
                 {
-                    ballPositions[i].x = (float)GetRandomValue(ballRadius, currentScreenWidth - ballRadius);
-                    ballPositions[i].y = (float)GetRandomValue(ballRadius, currentScreenHeight - ballRadius);
+
+                    ballPositions[i] = spawnpos();
 
                     float angle = (float)GetRandomValue(0, 360) * DEG2RAD;
                     ballSpeeds[i].x = ballSpeedValue * cos(angle);
