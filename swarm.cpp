@@ -79,7 +79,14 @@ int main(void)
     
     SetConfigFlags(FLAG_MSAA_4X_HINT);//| FLAG_FULLSCREEN_MODE);
     InitWindow(screenWidth, screenHeight, "Bouncing Balls with Pause Functionality");
-
+    InitAudioDevice();              // Initialize audio device
+    Music music = LoadMusicStream("music.mp3");
+    Sound ballDestroySound = LoadSound("kill.wav");
+    Sound projectileLaunchSound = LoadSound("projectile_launch.wav");
+    // Régler les volumes (optionnel)
+    SetSoundVolume(ballDestroySound, 0.5f);
+    SetSoundVolume(projectileLaunchSound, 0.8f);
+    PlayMusicStream(music);
     //ball setup
     const int ballCount = 15;
     const int ballRadius = 20;
@@ -160,6 +167,7 @@ int main(void)
     // Main game loop
     while (!WindowShouldClose())
     {
+        UpdateMusicStream(music);   // Update music buffer with new stream data
         int currentScreenWidth = GetScreenWidth();
         int currentScreenHeight = GetScreenHeight();
 
@@ -212,6 +220,7 @@ int main(void)
                         ballActive[y] = false;
                         pewActive[i] = false;
                         score += 10;
+                        PlaySound(ballDestroySound);
 
                         // Spawn particles at the collision point
                         for (int p = 0; p < 200; p++) {
@@ -354,6 +363,7 @@ int main(void)
                     for (int i = 0; i < pewCount; i++) {
                         if (!pewActive[i]) // Find an inactive projectile
                         {
+                            PlaySound(projectileLaunchSound);
                             pewActive[i] = true;
 
                             // Set initial position of the projectile (center of the player)
@@ -485,8 +495,13 @@ int main(void)
 
             EndDrawing();
         }
+        UnloadMusicStream(music);   // Unload music stream buffers from RAM
+        UnloadSound(ballDestroySound);
+        UnloadSound(projectileLaunchSound);
 
+        CloseAudioDevice();
         CloseWindow();
+  
         UnloadTexture(playerSpriteR);
         UnloadTexture(playerSpriteL);
         UnloadTexture(background);
